@@ -31,6 +31,13 @@ jobs:
         with:
           go-version: '1.20'
 
+      - name: Initialize Go Module
+        run: |
+          if [ ! -f go.mod ]; then
+            go mod init smuggler
+          fi
+          go mod tidy
+
       - name: Build
         run: |
           GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -v -o smuggler${{ matrix.ext }} ./smuggler.go
