@@ -1,0 +1,82 @@
+name: Go Build and Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        os: [linux, darwin, windows]
+        arch: [amd64]
+        include:
+          - os: linux
+            ext: ''
+          - os: darwin
+            ext: ''
+          - os: windows
+            ext: .exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.20'
+
+      - name: Build
+        run: |
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -v -o smuggler${{ matrix.ext }} ./smuggler.go
+          ls -lh smuggler${{ matrix.ext }}
+
+      - name: Create Release
+        id: create_release
+        if: matrix.os == 'linux' && matrix.arch == 'amd64'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v0.0.1
+          release_name: v0.0.1
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset (Linux)
+        if: matrix.os == 'linux' && matrix.arch == 'amd64'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./smuggler
+          asset_name: smuggler-linux-amd64
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset (macOS)
+        if: matrix.os == 'darwin' && matrix.arch == 'amd64'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./smuggler
+          asset_name: smuggler-macos-amd64
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset (Windows)
+        if: matrix.os == 'windows' && matrix.arch == 'amd64'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./smuggler.exe
+          asset_name: smuggler-windows-amd64.exe
+          asset_content_type: application/octet-stream
